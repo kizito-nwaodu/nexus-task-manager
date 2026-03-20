@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus | Modern Project Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 3px; }
+
+        /* Animations */
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(99, 102, 241, 0.6); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .animate-slide-in { animation: slideIn 0.5s ease-out forwards; }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+
+        .drop-zone {
+            transition: all 0.3s ease;
+        }
+        .drop-zone.drag-over {
+            background: rgba(99, 102, 241, 0.1);
+            border: 2px dashed #6366f1;
+            transform: scale(1.02);
+        }
+
+        /* Background Animation */
+        .bg-grid {
+            background-image: 
+                linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        .blob {
+            position: absolute;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: float 10s ease-in-out infinite;
+        }
+
+        /* Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #68D391;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #68D391;
+        }
+
+        /* Progress Ring */
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        /* Toast Notification */
+        .toast {
+            transform: translateX(100%);
+            transition: transform 0.3s ease-out;
+        }
+        .toast.show {
+            transform: translateX(0);
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6',
+                        accent: '#ec4899',
+                        dark: '#0f172a',
+                        darker: '#020617'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-darker text-white overflow-x-hidden">
+    <!-- Animated Background -->
+    <div class="fixed inset-0 bg-grid pointer-events-none z-0"></div>
+    <div class="blob bg-primary w-96 h-96 rounded-full top-0 left-0 -translate-x-1/2 -translate-y-1/2"></div>
+    <div class="blob bg-secondary w-96 h-96 rounded-full bottom-0 right-0 translate-x-1/2 translate-y-1/2 animation-delay-2000"></div>
+    <div class="blob bg-accent w-64 h-64 rounded-full top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20"></div>
+
+    <!-- App Container -->
+    <div id="app" class="relative z-10 min-h-screen">
+        <!-- Navigation -->
+        <nav class="glass-effect sticky top-0 z-50 px-6 py-4">
+            <div class="max-w-7xl mx-auto flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center animate-float">
+                        <i data-lucide="layers" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <span class="text-2xl font-bold gradient-text">Nexus</span>
+                </div>
+
+                <div class="hidden md:flex items-center space-x-6">
+                    <button onclick="showView('dashboard')" class="nav-btn px-4 py-2 rounded-lg hover:bg-white/10 transition-all flex items-center space-x-2">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span>Dashboard</span>
+                    </button>
+                    <button onclick="showView('projects')" class="nav-btn px-4 py-2 rounded-lg hover:bg-white/10 transition-all flex items-center space-x-2">
+                        <i data-lucide="folder" class="w-4 h-4"></i>
+                        <span>Projects</span>
+                    </button>
+                    <button onclick="showView('team')" class="nav-btn px-4 py-2 rounded-lg hover:bg-white/10 transition-all flex items-center space-x-2">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>Team</span>
+                    </button>
+                    <button onclick="showView('analytics')" class="nav-btn px-4 py-2 rounded-lg hover:bg-white/10 transition-all flex items-center space-x-2">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                        <span>Analytics</span>
+                    </button>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <button onclick="toggleTheme()" class="p-2 rounded-lg hover:bg-white/10 transition-all">
+                        <i data-lucide="moon" class="w-5 h-5" id="theme-icon"></i>
+                    </button>
+                    <button onclick="openNotifications()" class="relative p-2 rounded-lg hover:bg-white/10 transition-all">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                        <span class="absolute top-0 right-0 w-2 h-2 bg-accent rounded-full animate-pulse"></span>
+                    </button>
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center cursor-pointer hover:scale-110 transition-transform">
+                        <span class="font-bold text-sm">JD</span>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-6 py-8">
+            <!-- Dashboard View -->
+            <div id="dashboard-view" class="view-section animate-slide-in">
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="glass-effect rounded-2xl p-6 card-hover cursor-pointer" onclick="showView('projects')">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center">
+                                <i data-lucide="briefcase" class="w-6 h-6 text-primary"></i>
+                            </div>
+                            <span class="text-green-400 text-sm font-medium">+12%</span>
+                        </div>
+                        <h3 class="text-3xl font-bold mb-1">24</h3>
+                        <p class="text-gray-400 text-sm">Active Projects</p>
+                    </div>
+
+                    <div class="glass-effect rounded-2xl p-6 card-hover cursor-pointer">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-accent/20 rounded-xl flex items-center justify-center">
+                                <i data-lucide="check-circle" class="w-6 h-6 text-accent"></i>
+                            </div>
+                            <span class="text-green-400 text-sm font-medium">+8%</span>
+                        </div>
+                        <h3 class="text-3xl font-bold mb-1">156</h3>
+                        <p class="text-gray-400 text-sm">Tasks Completed</p>
+                    </div>
+
+                    <div class="glass-effect rounded-2xl p-6 card-hover cursor-pointer" onclick="showView('team')">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-secondary/20 rounded-xl flex items-center justify-center">
+                                <i data-lucide="users" class="w-6 h-6 text-secondary"></i>
+                            </div>
+                            <span class="text-green-400 text-sm font-medium">+3</span>
+                        </div>
+                        <h3 class="text-3xl font-bold mb-1">18</h3>
+                        <p class="text-gray-400 text-sm">Team Members</p>
+                    </div>
+
+                    <div class="glass-effect rounded-2xl p-6 card-hover cursor-pointer">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                                <i data-lucide="clock" class="w-6 h-6 text-green-400"></i>
+                            </div>
+                            <span class="text-green-400 text-sm font-medium">94%</span>
+                        </div>
+                        <h3 class="text-3xl font-bold mb-1">42h</h3>
+                        <p class="text-gray-400 text-sm">Productivity</p>
+                    </div>
+                </div>
+
+                <!-- Main Dashboard Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Task Board (Kanban) -->
+                    <div class="lg:col-span-2 glass-effect rounded-2xl p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-bold flex items-center space-x-2">
+                                <i data-lucide="kanban" class="w-5 h-5 text-primary"></i>
+                                <span>Task Board</span>
+                            </h2>
+                            <button onclick="openTaskModal()" class="px-4 py-2 bg-primary hover:bg-primary/80 rounded-lg transition-all flex items-center space-x-2">
+                                <i data-lucide="plus" class="w-4 h-4"></i>
+                                <span>New Task</span>
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- To Do Column -->
+                            <div class="drop-zone rounded-xl bg-white/5 p-4" 
+                                 ondrop="drop(event, 'todo')" 
+                                 ondragover="allowDrop(event)"
+                                 ondragleave="leaveDrop(event)">
+                                <div class="flex items-center justify-between mb-4">
+                                    <span class="text-sm font-medium text-gray-400">To Do</span>
+                                    <span class="px-2 py-1 bg-gray-700 rounded-full text-xs" id="count-todo">3</span>
+                                </div>
+                                <div id="todo-list" class="space-y-3">
+                                    <!-- Tasks injected via JS -->
+                                </div>
+                            </div>
+
+                            <!-- In Progress Column -->
+                            <div class="drop-zone rounded-xl bg-white/5 p-4" 
+                                 ondrop="drop(event, 'progress')" 
+                                 ondragover="allowDrop(event)"
+                                 ondragleave="leaveDrop(event)">
+                                <div class="flex items-center justify-between mb-4">
+                                    <span class="text-sm font-medium text-primary">In Progress</span>
+                                    <span class="px-2 py-1 bg-primary/20 text-primary rounded-full text-xs" id="count-progress">2</span>
+                                </div>
+                                <div id="progress-list" class="space-y-3">
+                                    <!-- Tasks injected via JS -->
+                                </div>
+                            </div>
+
+                            <!-- Done Column -->
+                            <div class="drop-zone rounded-xl bg-white/5 p-4" 
+                                 ondrop="drop(event, 'done')" 
+                                 ondragover="allowDrop(event)"
+                                 ondragleave="leaveDrop(event)">
+                                <div class="flex items-center justify-between mb-4">
+                                    <span class="text-sm font-medium text-green-400">Done</span>
+                                    <span class="px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs" id="count-done">2</span>
+                                </div>
+                                <div id="done-list" class="space-y-3">
+                                    <!-- Tasks injected via JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Side Panel -->
+                    <div class="space-y-6">
+                        <!-- Quick Actions -->
+                        <div class="glass-effect rounded-2xl p-6">
+                            <h3 class="font-bold mb-4 flex items-center space-x-2">
+                                <i data-lucide="zap" class="w-4 h-4 text-accent"></i>
+                                <span>Quick Actions</span>
+                            </h3>
+                            <div class="space-y-3">
+                                <button onclick="openTaskModal()" class="w-full p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all flex items-center space-x-3 text-left group">
+                                    <div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <i data-lucide="plus" class="w-4 h-4 text-primary"></i>
+                                    </div>
+                                    <span class="text-sm">Create Task</span>
+                                </button>
+                                <button onclick="showToast('Meeting scheduled!')" class="w-full p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all flex items-center space-x-3 text-left group">
+                                    <div class="w-8 h-8 rounded-lg bg-secondary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <i data-lucide="calendar" class="w-4 h-4 text-secondary"></i>
+                                    </div>
+                                    <span class="text-sm">Schedule Meeting</span>
+                                </button>
+                                <button onclick="showToast('Report generated!')" class="w-full p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-all flex items-center space-x-3 text-left group">
+                                    <div class="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <i data-lucide="file-text" class="w-4 h-4 text-accent"></i>
+                                    </div>
+                                    <span class="text-sm">Generate Report</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
+                        <div class="glass-effect rounded-2xl p-6">
+                            <h3 class="font-bold mb-4 flex items-center space-x-2">
+                                <i data-lucide="activity" class="w-4 h-4 text-green-400"></i>
+                                <span>Recent Activity</span>
+                            </h3>
+                            <div class="space-y-4" id="activity-list">
+                                <!-- Activity items injected via JS -->
+                            </div>
+                        </div>
+
+                        <!-- Team Online -->
+                        <div class="glass-effect rounded-2xl p-6">
+                            <h3 class="font-bold mb-4 flex items-center space-x-2">
+                                <i data-lucide="users" class="w-4 h-4 text-secondary"></i>
+                                <span>Team Online</span>
+                            </h3>
+                            <div class="flex -space-x-2">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary border-2 border-darker flex items-center justify-center text-xs font-bold relative">
+                                    JD
+                                    <span class="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-darker rounded-full"></span>
+                                </div>
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-accent to-primary border-2 border-darker flex items-center justify-center text-xs font-bold relative">
+                                    AS
+                                    <span class="absolute bottom-0 right-0 w-3 h-3 bg-green-400 border-2 border-darker rounded-full"></span>
+                                </div>
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-secondary to-accent border-2 border-darker flex items-center justify-center text-xs font-bold relative">
+                                    MK
+                                    <span class="absolute bottom-0 right-0 w-3 h-3 bg-yellow-400 border-2 border-darker rounded-full"></span>
+                                </div>
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-primary border-2 border-darker flex items-center justify-center text-xs font-bold relative">
+                                    +5
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Projects View -->
+            <div id="projects-view" class="view-section hidden animate-slide-in">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">Projects</h2>
+                    <button onclick="openProjectModal()" class="px-4 py-2 bg-primary hover:bg-primary/80 rounded-lg transition-all flex items-center space-x-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>New Project</span>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="projects-grid">
+                    <!-- Projects injected via JS -->
+                </div>
+            </div>
+
+            <!-- Team View -->
+            <div id="team-view" class="view-section hidden animate-slide-in">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold">Team Members</h2>
+                    <button onclick="showToast('Invite sent!')" class="px-4 py-2 bg-primary hover:bg-primary/80 rounded-lg transition-all flex items-center space-x-2">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                        <span>Invite Member</span>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="team-grid">
+                    <!-- Team members injected via JS -->
+                </div>
+            </div>
+
+            <!-- Analytics View -->
+            <div id="analytics-view" class="view-section hidden animate-slide-in">
+                <h2 class="text-2xl font-bold mb-6">Analytics Dashboard</h2>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="glass-effect rounded-2xl p-6">
+                        <h3 class="font-bold mb-4">Task Completion Rate</h3>
+                        <canvas id="completionChart" class="w-full h-64"></canvas>
+                    </div>
+                    <div class="glass-effect rounded-2xl p-6">
+                        <h3 class="font-bold mb-4">Team Productivity</h3>
+                        <canvas id="productivityChart" class="w-full h-64"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Task Modal -->
+    <div id="task-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center">
+        <div class="glass-effect rounded-2xl p-6 w-full max-w-md mx-4 transform transition-all scale-95 opacity-0" id="task-modal-content">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold">Create New Task</h3>
+                <button onclick="closeTaskModal()" class="p-2 hover:bg-white/10 rounded-lg transition-all">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form onsubmit="createTask(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Task Title</label>
+                    <input type="text" id="task-title" required 
+                           class="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-primary focus:outline-none transition-all"
+                           placeholder="Enter task title...">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Description</label>
+                    <textarea id="task-desc" rows="3"
+                              class="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-primary focus:outline-none transition-all"
+                              placeholder="Enter description..."></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Priority</label>
+                        <select id="task-priority" class="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-primary focus:outline-none transition-all">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Due Date</label>
+                        <input type="date" id="task-date" 
+                               class="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-primary focus:outline-none transition-all">
+                    </div>
+                </div>
+                <div class="flex space-x-3 pt-4">
+                    <button type="button" onclick="closeTaskModal()" 
+                            class="flex-1 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all">Cancel</button>
+                    <button type="submit" 
+                            class="flex-1 px-4 py-2 rounded-lg bg-primary hover:bg-primary/80 transition-all">Create Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Project Modal -->
+    <div id="project-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center">
+        <div class="glass-effect rounded-2xl p-6 w-full max-w-md mx-4 transform transition-all scale-95 opacity-0" id="project-modal-content">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold">Create New Project</h3>
+                <button onclick="closeProjectModal()" class="p-2 hover:bg-white/10 rounded-lg transition-all">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form onsubmit="createProject(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Project Name</label>
+                    <input type="text" id="project-name" required 
+                           class="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-primary focus:outline-none transition-all"
+                           placeholder="Enter project name...">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Description</label>
+                    <textarea id="project-desc" rows="3"
+                              class="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 focus:border-primary focus:outline-none transition-all"
+                              placeholder="Enter description..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Color Theme</label>
+                    <div class="flex space-x-3">
+                        <button type="button" onclick="selectColor('primary')" class="w-8 h-8 rounded-full bg-primary ring-2 ring-offset-2 ring-offset-darker ring-primary transition-all color-btn" data-color="primary"></button>
+                        <button type="button" onclick="selectColor('secondary')" class="w-8 h-8 rounded-full bg-secondary ring-2 ring-offset-2 ring-offset-darker ring-transparent transition-all color-btn" data-color="secondary"></button>
+                        <button type="button" onclick="selectColor('accent')" class="w-8 h-8 rounded-full bg-accent ring-2 ring-offset-2 ring-offset-darker ring-transparent transition-all color-btn" data-color="accent"></button>
+                        <button type="button" onclick="selectColor('green')" class="w-8 h-8 rounded-full bg-green-400 ring-2 ring-offset-2 ring-offset-darker ring-transparent transition-all color-btn" data-color="green"></button>
+                    </div>
+                </div>
+                <div class="flex space-x-3 pt-4">
+                    <button type="button" onclick="closeProjectModal()" 
+                            class="flex-1 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all">Cancel</button>
+                    <button type="submit" 
+                            class="flex-1 px-4 py-2 rounded-lg bg-primary hover:bg-primary/80 transition-all">Create Project</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 space-y-2"></div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // State Management
+        let tasks = [
+            { id: 1, title: "Design System Update", desc: "Update color palette and typography", priority: "high", status: "todo", date: "2026-03-25" },
+            { id: 2, title: "API Integration", desc: "Connect frontend with REST API", priority: "high", status: "progress", date: "2026-03-23" },
+            { id: 3, title: "User Testing", desc: "Conduct usability testing sessions", priority: "medium", status: "todo", date: "2026-03-28" },
+            { id: 4, title: "Documentation", desc: "Write technical documentation", priority: "low", status: "done", date: "2026-03-20" },
+            { id: 5, title: "Bug Fixes", desc: "Fix reported issues from QA", priority: "high", status: "progress", date: "2026-03-22" },
+            { id: 6, title: "Performance Optimization", desc: "Optimize loading times", priority: "medium", status: "done", date: "2026-03-19" },
+            { id: 7, title: "Mobile Responsive", desc: "Ensure mobile compatibility", priority: "medium", status: "todo", date: "2026-03-26" }
+        ];
+
+        let projects = [
+            { id: 1, name: "Website Redesign", desc: "Complete overhaul of company website", progress: 75, color: "primary", tasks: 12 },
+            { id: 2, name: "Mobile App", desc: "iOS and Android application", progress: 45, color: "secondary", tasks: 24 },
+            { id: 3, name: "Dashboard Analytics", desc: "Internal analytics platform", progress: 90, color: "accent", tasks: 8 }
+        ];
+
+        let team = [
+            { id: 1, name: "John Doe", role: "Product Manager", tasks: 5, color: "from-primary to-secondary" },
+            { id: 2, name: "Alice Smith", role: "Lead Developer", tasks: 8, color: "from-secondary to-accent" },
+            { id: 3, name: "Mike Johnson", role: "UI/UX Designer", tasks: 4, color: "from-accent to-primary" },
+            { id: 4, name: "Sarah Williams", role: "Backend Dev", tasks: 6, color: "from-green-400 to-primary" },
+            { id: 5, name: "Tom Brown", role: "QA Engineer", tasks: 3, color: "from-primary to-green-400" },
+            { id: 6, name: "Emily Davis", role: "DevOps", tasks: 4, color: "from-secondary to-green-400" }
+        ];
+
+        let activities = [
+            { user: "John", action: "completed task", target: "API Integration", time: "2 min ago" },
+            { user: "Alice", action: "created project", target: "Mobile App v2", time: "1 hour ago" },
+            { user: "Mike", action: "uploaded file", target: "Design Assets.zip", time: "3 hours ago" },
+            { user: "Sarah", action: "commented on", target: "Database Schema", time: "5 hours ago" }
+        ];
+
+        let selectedColor = 'primary';
+        let draggedTask = null;
+
+        // View Navigation
+        function showView(viewName) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(viewName + '-view').classList.remove('hidden');
+
+            if (viewName === 'analytics') {
+                setTimeout(initCharts, 100);
+            }
+        }
+
+        // Render Functions
+        function renderTasks() {
+            const columns = { todo: document.getElementById('todo-list'), progress: document.getElementById('progress-list'), done: document.getElementById('done-list') };
+            const counts = { todo: 0, progress: 0, done: 0 };
+
+            Object.values(columns).forEach(col => col.innerHTML = '');
+
+            tasks.forEach(task => {
+                counts[task.status]++;
+                const priorityColors = { low: 'bg-green-500/20 text-green-400', medium: 'bg-yellow-500/20 text-yellow-400', high: 'bg-red-500/20 text-red-400' };
+
+                const taskEl = document.createElement('div');
+                taskEl.className = 'glass-effect rounded-lg p-4 cursor-move card-hover group';
+                taskEl.draggable = true;
+                taskEl.dataset.taskId = task.id;
+                taskEl.innerHTML = `
+                    <div class="flex items-start justify-between mb-2">
+                        <span class="px-2 py-1 rounded text-xs ${priorityColors[task.priority]}">${task.priority}</span>
+                        <button onclick="deleteTask(${task.id})" class="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/20 rounded">
+                            <i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i>
+                        </button>
+                    </div>
+                    <h4 class="font-medium mb-1">${task.title}</h4>
+                    <p class="text-xs text-gray-400 mb-3">${task.desc}</p>
+                    <div class="flex items-center justify-between text-xs text-gray-500">
+                        <span class="flex items-center space-x-1">
+                            <i data-lucide="calendar" class="w-3 h-3"></i>
+                            <span>${task.date}</span>
+                        </span>
+                        <div class="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-xs font-bold">
+                            ${task.title.charAt(0)}
+                        </div>
+                    </div>
+                `;
+
+                taskEl.addEventListener('dragstart', (e) => {
+                    draggedTask = task;
+                    taskEl.classList.add('dragging');
+                });
+
+                taskEl.addEventListener('dragend', () => {
+                    taskEl.classList.remove('dragging');
+                    draggedTask = null;
+                });
+
+                columns[task.status].appendChild(taskEl);
+            });
+
+            document.getElementById('count-todo').textContent = counts.todo;
+            document.getElementById('count-progress').textContent = counts.progress;
+            document.getElementById('count-done').textContent = counts.done;
+
+            lucide.createIcons();
+        }
+
+        function renderProjects() {
+            const grid = document.getElementById('projects-grid');
+            grid.innerHTML = projects.map(project => `
+                <div class="glass-effect rounded-2xl p-6 card-hover cursor-pointer group">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 rounded-xl bg-${project.color}/20 flex items-center justify-center">
+                            <i data-lucide="folder" class="w-6 h-6 text-${project.color}"></i>
+                        </div>
+                        <button onclick="deleteProject(${project.id})" class="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-red-500/20 rounded-lg">
+                            <i data-lucide="trash-2" class="w-4 h-4 text-red-400"></i>
+                        </button>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2">${project.name}</h3>
+                    <p class="text-sm text-gray-400 mb-4">${project.desc}</p>
+                    <div class="flex items-center justify-between text-sm text-gray-400 mb-3">
+                        <span>${project.tasks} tasks</span>
+                        <span>${project.progress}%</span>
+                    </div>
+                    <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                        <div class="h-full bg-${project.color} rounded-full transition-all duration-500" style="width: ${project.progress}%"></div>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function renderTeam() {
+            const grid = document.getElementById('team-grid');
+            grid.innerHTML = team.map(member => `
+                <div class="glass-effect rounded-2xl p-6 card-hover">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-br ${member.color} flex items-center justify-center text-xl font-bold">
+                            ${member.name.split(' ').map(n => n[0]).join('')}
+                        </div>
+                        <div>
+                            <h3 class="font-bold">${member.name}</h3>
+                            <p class="text-sm text-gray-400">${member.role}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2 text-sm text-gray-400">
+                            <i data-lucide="check-circle" class="w-4 h-4"></i>
+                            <span>${member.tasks} active tasks</span>
+                        </div>
+                        <button onclick="showToast('Message sent to ${member.name}')" class="p-2 hover:bg-white/10 rounded-lg transition-all">
+                            <i data-lucide="message-circle" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function renderActivity() {
+            const list = document.getElementById('activity-list');
+            list.innerHTML = activities.map(activity => `
+                <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm">
+                            <span class="font-medium">${activity.user}</span>
+                            <span class="text-gray-400">${activity.action}</span>
+                            <span class="font-medium text-primary">${activity.target}</span>
+                        </p>
+                        <p class="text-xs text-gray-500 mt-1">${activity.time}</p>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // Drag and Drop
+        function allowDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function leaveDrop(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function drop(e, status) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            if (draggedTask) {
+                draggedTask.status = status;
+                renderTasks();
+                showToast(`Task moved to ${status.replace('-', ' ')}`);
+                addActivity('You', 'moved task', draggedTask.title);
+            }
+        }
+
+        // Modal Functions
+        function openTaskModal() {
+            const modal = document.getElementById('task-modal');
+            const content = document.getElementById('task-modal-content');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeTaskModal() {
+            const modal = document.getElementById('task-modal');
+            const content = document.getElementById('task-modal-content');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        function openProjectModal() {
+            const modal = document.getElementById('project-modal');
+            const content = document.getElementById('project-modal-content');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closeProjectModal() {
+            const modal = document.getElementById('project-modal');
+            const content = document.getElementById('project-modal-content');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        function selectColor(color) {
+            selectedColor = color;
+            document.querySelectorAll('.color-btn').forEach(btn => {
+                btn.classList.remove('ring-primary');
+                btn.classList.add('ring-transparent');
+            });
+            document.querySelector(`[data-color="${color}"]`).classList.remove('ring-transparent');
+            document.querySelector(`[data-color="${color}"]`).classList.add('ring-primary');
+        }
+
+        // CRUD Operations
+        function createTask(e) {
+            e.preventDefault();
+            const newTask = {
+                id: Date.now(),
+                title: document.getElementById('task-title').value,
+                desc: document.getElementById('task-desc').value,
+                priority: document.getElementById('task-priority').value,
+                status: 'todo',
+                date: document.getElementById('task-date').value || new Date().toISOString().split('T')[0]
+            };
+            tasks.push(newTask);
+            renderTasks();
+            closeTaskModal();
+            showToast('Task created successfully!');
+            addActivity('You', 'created task', newTask.title);
+            e.target.reset();
+        }
+
+        function deleteTask(id) {
+            tasks = tasks.filter(t => t.id !== id);
+            renderTasks();
+            showToast('Task deleted');
+        }
+
+        function createProject(e) {
+            e.preventDefault();
+            const newProject = {
+                id: Date.now(),
+                name: document.getElementById('project-name').value,
+                desc: document.getElementById('project-desc').value,
+                progress: 0,
+                color: selectedColor,
+                tasks: 0
+            };
+            projects.push(newProject);
+            renderProjects();
+            closeProjectModal();
+            showToast('Project created successfully!');
+            addActivity('You', 'created project', newProject.name);
+            e.target.reset();
+        }
+
+        function deleteProject(id) {
+            projects = projects.filter(p => p.id !== id);
+            renderProjects();
+            showToast('Project deleted');
+        }
+
+        function addActivity(user, action, target) {
+            activities.unshift({ user, action, target, time: 'Just now' });
+            if (activities.length > 10) activities.pop();
+            renderActivity();
+        }
+
+        // Toast Notifications
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'glass-effect px-6 py-4 rounded-xl flex items-center space-x-3 toast';
+            toast.innerHTML = `
+                <i data-lucide="check-circle" class="w-5 h-5 text-green-400"></i>
+                <span>${message}</span>
+            `;
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Theme Toggle
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            const icon = document.getElementById('theme-icon');
+            if (document.documentElement.classList.contains('dark')) {
+                icon.setAttribute('data-lucide', 'sun');
+            } else {
+                icon.setAttribute('data-lucide', 'moon');
+            }
+            lucide.createIcons();
+        }
+
+        // Charts (Canvas)
+        function initCharts() {
+            const completionCtx = document.getElementById('completionChart');
+            if (!completionCtx) return;
+
+            // Simple bar chart using canvas
+            const ctx = completionCtx.getContext('2d');
+            ctx.clearRect(0, 0, completionCtx.width, completionCtx.height);
+
+            const data = [65, 78, 90, 81, 56, 95, 88];
+            const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const barWidth = 30;
+            const spacing = 20;
+            const startX = 40;
+            const maxHeight = 150;
+
+            data.forEach((value, i) => {
+                const height = (value / 100) * maxHeight;
+                const x = startX + i * (barWidth + spacing);
+                const y = 200 - height;
+
+                // Gradient
+                const gradient = ctx.createLinearGradient(0, y, 0, 200);
+                gradient.addColorStop(0, '#6366f1');
+                gradient.addColorStop(1, '#8b5cf6');
+
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x, y, barWidth, height);
+
+                // Label
+                ctx.fillStyle = '#9ca3af';
+                ctx.font = '12px Inter';
+                ctx.fillText(labels[i], x + 5, 220);
+
+                // Value
+                ctx.fillStyle = '#fff';
+                ctx.fillText(value + '%', x + 2, y - 5);
+            });
+
+            // Productivity Chart (Line)
+            const prodCtx = document.getElementById('productivityChart').getContext('2d');
+            prodCtx.clearRect(0, 0, 400, 300);
+
+            prodCtx.beginPath();
+            prodCtx.strokeStyle = '#ec4899';
+            prodCtx.lineWidth = 3;
+
+            const prodData = [40, 55, 45, 70, 65, 85, 90];
+            prodData.forEach((value, i) => {
+                const x = startX + i * (barWidth + spacing);
+                const y = 200 - (value / 100) * maxHeight;
+                if (i === 0) prodCtx.moveTo(x + barWidth/2, y);
+                else prodCtx.lineTo(x + barWidth/2, y);
+            });
+            prodCtx.stroke();
+
+            // Points
+            prodData.forEach((value, i) => {
+                const x = startX + i * (barWidth + spacing) + barWidth/2;
+                const y = 200 - (value / 100) * maxHeight;
+                prodCtx.fillStyle = '#ec4899';
+                prodCtx.beginPath();
+                prodCtx.arc(x, y, 5, 0, Math.PI * 2);
+                prodCtx.fill();
+            });
+        }
+
+        function openNotifications() {
+            showToast('3 new notifications');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTasks();
+            renderProjects();
+            renderTeam();
+            renderActivity();
+
+            // Simulate real-time updates
+            setInterval(() => {
+                if (Math.random() > 0.7) {
+                    const actions = ['updated task', 'commented on', 'uploaded file'];
+                    const targets = ['Dashboard', 'API Docs', 'Design System', 'Homepage'];
+                    const users = ['Alice', 'Mike', 'Sarah', 'Tom'];
+                    addActivity(
+                        users[Math.floor(Math.random() * users.length)],
+                        actions[Math.floor(Math.random() * actions.length)],
+                        targets[Math.floor(Math.random() * targets.length)]
+                    );
+                }
+            }, 10000);
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeTaskModal();
+                closeProjectModal();
+            }
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                openTaskModal();
+            }
+        });
+    </script>
+</body>
+</html>
