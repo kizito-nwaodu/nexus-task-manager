@@ -7,66 +7,138 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const SECRET = 'nexus_secret_8899';
+const SECRET = 'nexus_secure_key_99'; // In production, use an environment variable
 
-app.use(express.json());
+// 1. MIDDLEWARE
 app.use(cors());
+app.use(express.json());
+
+// Serve static files from the 'public' folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Initialize DB
-const db = new sqlite3.Database('./nexus.db');
-
-db.serialize(() => {
-    db.run("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, email TEXT UNIQUE, password TEXT, name TEXT)");
-    db.run("CREATE TABLE IF NOT EXISTS projects (id INTEGER PRIMARY KEY, name TEXT, color TEXT, ownerId INTEGER)");
-    db.run("CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, title TEXT, desc TEXT, status TEXT, priority TEXT, projectId INTEGER)");
+// 2. DATABASE INITIALIZATION
+// This creates a file named nexus.db in your root directory
+const db = new sqlite3.Database('./nexus.db', (err) => {
+    if (err) console.error("Database error:", err.message);
+    else console.log("Connected to Nexus Database.");
 });
 
-// Auth Routes
+db.serialize(() => {
+    // Create Users table
+    db.run(`CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        email TEXT UNIQUE, 
+        password TEXT, 
+        name TEXT
+    )`);
+    
+    // Create Tasks table
+    db.run(`CREATE TABLE IF NOT EXISTS tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        title TEXT, 
+        desc TEXT, 
+        status TEXT, 
+        priority TEXT, 
+        userId INTEGER
+    )`);
+});
+
+// 3. AUTHENTICATION MIDDLEWARE
+function authenticate(req, res, next) {
+    const token = req.headers['authorization'];
+    if (!token) return res.status(401).json({ error: "Access denied. No token provided." });
+
+    try {
+        const decoded = jwt.verify(token, SECRET);
+        req.user = decoded;
+        next();
+    } catch (ex) {
+        res.status(400).json({ error: "Invalid token." });
+    }
+}
+
+// 4. API ROUTES
+
+// Login & Auto-Register (Simplified for testing)
 app.post('/api/login', (req, res) => {
     const { email, password } = req.body;
+    
     db.get("SELECT * FROM users WHERE email = ?", [email], async (err, user) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
         if (!user) {
-            // Auto-register for testing convenience
-            const hashed = await bcrypt.hash(password, 10);
-            db.run("INSERT INTO users (email, password, name) VALUES (?, ?, ?)", [email, hashed, 'New User'], function() {
-                const token = jwt.sign({ id: this.lastID, email }, SECRET);
-                return res.json({ token, name: 'User' });
-            });
+            // If user doesn't exist, create them (Auto-Signup Feature)
+            const hashedPassword = await bcrypt.hash(password, 10);
+            db.run("INSERT INTO users (email, password, name) VALUES (?, ?, ?)", 
+                [email, hashedPassword, email.split('@')[0]], 
+                function(err) {
+                    if (err) return res.status(500).json({ error: "Registration failed" });
+                    const token = jwt.sign({ id: this.lastID, email }, SECRET);
+                    res.json({ token, name: email.split('@')[0], message: "Account created" });
+                }
+            );
         } else {
-            const match = await bcrypt.compare(password, user.password);
-            if (!match) return res.status(401).json({ error: "Wrong password" });
+            // Verify password
+            const validPass = await bcrypt.compare(password, user.password);
+            if (!validPass) return res.status(401).json({ error: "Invalid password" });
+            
             const token = jwt.sign({ id: user.id, email: user.email }, SECRET);
             res.json({ token, name: user.name });
         }
     });
 });
 
-// App Routes
+// Get all tasks for logged in user
 app.get('/api/tasks', authenticate, (req, res) => {
-    db.all("SELECT * FROM tasks", (err, rows) => res.json(rows || []));
+    db.all("SELECT * FROM tasks WHERE userId = ?", [req.user.id], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows || []);
+    });
 });
 
+// Create a new task
 app.post('/api/tasks', authenticate, (req, res) => {
-    const { title, desc, status, priority, projectId } = req.body;
-    db.run("INSERT INTO tasks (title, desc, status, priority, projectId) VALUES (?, ?, ?, ?, ?)", 
-    [title, desc, status, priority, projectId], function() {
-        res.json({ id: this.lastID });
-    });
+    const { title, desc, status, priority } = req.body;
+    db.run("INSERT INTO tasks (title, desc, status, priority, userId) VALUES (?, ?, ?, ?, ?)", 
+        [title, desc, status || 'todo', priority || 'medium', req.user.id], 
+        function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ id: this.lastID, title, status, priority });
+        }
+    );
 });
 
+// Update task status (Drag & Drop)
 app.put('/api/tasks/:id', authenticate, (req, res) => {
-    db.run("UPDATE tasks SET status = ? WHERE id = ?", [req.body.status, req.params.id], () => res.json({ success: true }));
+    const { status } = req.body;
+    db.run("UPDATE tasks SET status = ? WHERE id = ? AND userId = ?", 
+        [status, req.params.id, req.user.id], 
+        function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ success: true });
+        }
+    );
 });
 
-function authenticate(req, res, next) {
-    const token = req.headers['authorization'];
-    if (!token) return res.status(401).send("No token");
-    jwt.verify(token, SECRET, (err, user) => {
-        if (err) return res.status(403).send("Invalid");
-        req.user = user;
-        next();
+// Delete a task
+app.delete('/api/tasks/:id', authenticate, (req, res) => {
+    db.run("DELETE FROM tasks WHERE id = ? AND userId = ?", [req.params.id, req.user.id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
     });
-}
+});
 
-app.listen(PORT, () => console.log(`Live at http://localhost:${PORT}`));
+// 5. THE CATCH-ALL ROUTE (Fixes the "Not Found" error)
+// This ensures that any URL that isn't an /api route serves the frontend index.html
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 6. START SERVER
+app.listen(PORT, () => {
+    console.log(`
+    🚀 Nexus Server is running!
+    📍 Local: http://localhost:${PORT}
+    📂 Serving from: ${path.join(__dirname, 'public')}
+    `);
+});
