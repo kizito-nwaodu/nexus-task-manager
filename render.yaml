@@ -1,0 +1,17 @@
+# render.yaml
+# Drop this file in the repo root.
+# On Render: New → Blueprint → connect repo → done.
+
+services:
+  - type: web
+    name: nexuspro
+    runtime: node
+    region: frankfurt
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node backend/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
