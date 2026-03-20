@@ -2,170 +2,205 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Nexus | Enterprise Control</title>
+    <title>Nexus Enterprise | Control Center</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; }
-        .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
-        .nav-active { background: #6366f1; color: white; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; overflow: hidden; }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+        .nav-active { background: #6366f1; color: white; box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4); }
+        .view-section { transition: all 0.4s ease; }
     </style>
 </head>
 <body class="flex h-screen">
 
-    <!-- LOGIN UI -->
-    <div id="auth-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950">
-        <div class="glass p-10 rounded-3xl w-full max-w-md">
-            <h1 class="text-3xl font-bold mb-8">Nexus Portal</h1>
-            <input id="l-email" type="email" placeholder="Email" class="w-full p-4 bg-white/5 rounded-xl border border-white/10 mb-4">
-            <input id="l-pass" type="password" placeholder="Password" class="w-full p-4 bg-white/5 rounded-xl border border-white/10 mb-8">
-            <button onclick="login()" class="w-full py-4 bg-indigo-600 rounded-xl font-bold">Sign In</button>
-            <p class="mt-4 text-center text-xs text-slate-500 italic">Login: admin@nexus.com / password</p>
+    <!-- AUTHENTICATION LAYER -->
+    <div id="auth-screen" class="fixed inset-0 z-[200] flex items-center justify-center bg-[#020617] p-4">
+        <div class="glass p-10 rounded-[2.5rem] w-full max-w-md border-white/5">
+            <div id="auth-login">
+                <h2 class="text-3xl font-extrabold mb-2">Nexus Login</h2>
+                <p class="text-slate-500 mb-8 text-sm">Access your secure workspace</p>
+                <input id="l-email" type="email" placeholder="Email Address" class="w-full p-4 rounded-2xl bg-white/5 border border-white/10 mb-4 outline-none focus:border-indigo-500">
+                <input id="l-pass" type="password" placeholder="Password" class="w-full p-4 rounded-2xl bg-white/5 border border-white/10 mb-2 outline-none focus:border-indigo-500">
+                <button onclick="toggleAuth('forgot')" class="text-xs text-indigo-400 mb-8">Forgot Password?</button>
+                <button onclick="login()" class="w-full py-4 bg-indigo-600 rounded-2xl font-bold hover:scale-105 transition-all">Sign In</button>
+                <p class="mt-6 text-center text-sm text-slate-500">New? <a href="javascript:toggleAuth('signup')" class="text-indigo-400 font-bold">Create Account</a></p>
+            </div>
+            <div id="auth-signup" class="hidden">
+                <h2 class="text-3xl font-extrabold mb-2">Join Nexus</h2>
+                <p class="text-slate-500 mb-8 text-sm">Start your enterprise journey</p>
+                <input id="s-name" type="text" placeholder="Full Name" class="w-full p-4 rounded-2xl bg-white/5 border border-white/10 mb-4 outline-none">
+                <input id="s-email" type="email" placeholder="Email Address" class="w-full p-4 rounded-2xl bg-white/5 border border-white/10 mb-4 outline-none">
+                <input id="s-pass" type="password" placeholder="Password" class="w-full p-4 rounded-2xl bg-white/5 border border-white/10 mb-8 outline-none">
+                <button onclick="signup()" class="w-full py-4 bg-emerald-600 rounded-2xl font-bold hover:scale-105 transition-all">Create Account</button>
+                <p class="mt-6 text-center text-sm text-slate-500"><a href="javascript:toggleAuth('login')" class="text-indigo-400">Back to Login</a></p>
+            </div>
+            <div id="auth-forgot" class="hidden text-center">
+                <h2 class="text-3xl font-extrabold mb-2">Reset</h2>
+                <input id="f-email" type="email" placeholder="Enter Email" class="w-full p-4 rounded-2xl bg-white/5 border border-white/10 mb-6 outline-none">
+                <button onclick="forgot()" class="w-full py-4 bg-white/10 rounded-2xl font-bold mb-4">Send Link</button>
+                <button onclick="toggleAuth('login')" class="text-sm text-slate-500">Cancel</button>
+            </div>
         </div>
     </div>
 
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="w-64 glass border-r border-white/5 flex flex-col p-6 hidden">
+    <aside id="sidebar" class="w-72 glass h-full border-r border-white/5 flex flex-col p-6 hidden">
         <div class="flex items-center space-x-3 mb-12">
-            <div class="bg-indigo-600 p-2 rounded-lg"><i data-lucide="layers" class="w-5 h-5"></i></div>
-            <span class="text-xl font-bold">Nexus</span>
+            <div class="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-500/30"><i data-lucide="layers" class="text-white"></i></div>
+            <h1 class="text-2xl font-black italic tracking-tighter uppercase">Nexus</h1>
         </div>
         <nav class="flex-1 space-y-1">
-            <button onclick="showView('dash')" class="v-link w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/5"><i data-lucide="home" class="w-4 h-4"></i><span>Dashboard</span></button>
-            <button onclick="showView('projects')" class="v-link w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/5"><i data-lucide="briefcase" class="w-4 h-4"></i><span>Projects</span></button>
-            <button onclick="showView('team')" class="v-link w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/5"><i data-lucide="users" class="w-4 h-4"></i><span>Team</span></button>
-            <button onclick="showView('audit')" class="v-link w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/5"><i data-lucide="shield-check" class="w-4 h-4"></i><span>Audit Log</span></button>
+            <button onclick="showView('dash')" class="v-btn w-full flex items-center space-x-3 p-4 rounded-2xl transition-all"><i data-lucide="home" class="w-5 h-5"></i><span class="font-bold text-sm">Dashboard</span></button>
+            <button onclick="showView('projects')" class="v-btn w-full flex items-center space-x-3 p-4 rounded-2xl transition-all"><i data-lucide="briefcase" class="w-5 h-5"></i><span class="font-bold text-sm">Projects</span></button>
+            <button onclick="showView('tasks')" class="v-btn w-full flex items-center space-x-3 p-4 rounded-2xl transition-all"><i data-lucide="kanban" class="w-5 h-5"></i><span class="font-bold text-sm">Kanban</span></button>
+            <button id="nav-team" onclick="showView('team')" class="v-btn w-full flex items-center space-x-3 p-4 rounded-2xl transition-all hidden"><i data-lucide="users" class="w-5 h-5"></i><span class="font-bold text-sm">User Management</span></button>
+            <button id="nav-audit" onclick="showView('audit')" class="v-btn w-full flex items-center space-x-3 p-4 rounded-2xl transition-all hidden"><i data-lucide="shield-check" class="w-5 h-5"></i><span class="font-bold text-sm">Audit Logs</span></button>
         </nav>
         <div class="pt-6 border-t border-white/5">
-            <p id="u-name" class="font-bold text-sm mb-1"></p>
-            <p id="u-role" class="text-[10px] uppercase text-indigo-400 font-bold mb-4"></p>
-            <button onclick="logout()" class="text-xs text-red-400">Logout</button>
+            <button onclick="openSupport()" class="w-full flex items-center space-x-3 p-4 rounded-2xl bg-white/5 mb-6 text-sm"><i data-lucide="help-circle"></i><span>Support</span></button>
+            <div class="flex items-center space-x-3">
+                <div id="u-avatar" class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold">U</div>
+                <div><p id="u-name" class="text-sm font-bold">User</p><button onclick="logout()" class="text-[10px] text-red-500 uppercase font-black">Sign Out</button></div>
+            </div>
         </div>
     </aside>
 
-    <!-- CONTENT -->
+    <!-- MAIN VIEW -->
     <main id="main-content" class="flex-1 overflow-y-auto p-10 hidden">
         
-        <!-- DASHBOARD -->
-        <div id="v-dash" class="view space-y-8">
-            <h1 class="text-4xl font-black">Global Command</h1>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-sm">Total Projects</p><h2 id="st-projects" class="text-4xl font-bold">0</h2></div>
-                <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-sm">Active Members</p><h2 id="st-users" class="text-4xl font-bold">0</h2></div>
-                <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-sm">Tasks Tracked</p><h2 id="st-tasks" class="text-4xl font-bold">0</h2></div>
+        <!-- DASHBOARD (Dynamic for Admin/User) -->
+        <div id="v-dash" class="view-section space-y-10">
+            <div class="flex justify-between items-end">
+                <div><h1 class="text-5xl font-black mb-2 tracking-tighter">Command Center</h1><p class="text-slate-500">Live system status and organizational velocity.</p></div>
+                <div class="text-right hidden md:block"><p class="text-xs text-slate-600 font-bold uppercase mb-1">Last Update</p><p id="live-clock" class="text-sm font-mono text-indigo-400">00:00:00</p></div>
             </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass p-8 rounded-[2.5rem]"><p class="text-slate-500 text-xs font-black uppercase mb-2">Total Workspace Projects</p><h2 id="st-projects" class="text-5xl font-bold">0</h2></div>
+                <div class="glass p-8 rounded-[2.5rem]"><p class="text-slate-500 text-xs font-black uppercase mb-2">Platform Engagement</p><h2 id="st-users" class="text-5xl font-bold text-indigo-400">0</h2></div>
+                <div class="glass p-8 rounded-[2.5rem]"><p class="text-slate-500 text-xs font-black uppercase mb-2">Global Task Velocity</p><h2 id="st-tasks" class="text-5xl font-bold text-emerald-400">0</h2></div>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="glass p-8 rounded-3xl">
-                    <h3 class="font-bold mb-6">Recent Activity</h3>
-                    <div id="mini-audit" class="space-y-4"></div>
+                <div class="glass p-8 rounded-[2.5rem]"><h3 class="font-bold mb-6 flex items-center space-x-2"><i data-lucide="activity" class="text-indigo-400"></i><span>Recent Audit Stream</span></h3><div id="audit-feed" class="space-y-4"></div></div>
+                <div class="glass p-8 rounded-[2.5rem] bg-indigo-600/5 border-indigo-500/20 flex flex-col justify-center text-center">
+                    <i data-lucide="zap" class="w-12 h-12 text-indigo-400 mx-auto mb-4"></i>
+                    <h3 class="text-2xl font-bold mb-2">Enterprise Insights</h3>
+                    <p class="text-slate-500 text-sm mb-6">Analyze team efficiency and cross-project bottlenecks in real-time.</p>
+                    <button class="bg-indigo-600 py-3 rounded-xl font-bold mx-auto px-8">Full Analytics Report</button>
                 </div>
             </div>
         </div>
 
-        <!-- PROJECTS -->
-        <div id="v-projects" class="view hidden space-y-8">
-            <div class="flex justify-between items-center">
-                <h1 class="text-4xl font-black">Projects</h1>
-                <button onclick="createProject()" class="bg-indigo-600 px-6 py-2 rounded-xl font-bold">Create Project</button>
-            </div>
-            <div id="project-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        <!-- PROJECTS VIEW -->
+        <div id="v-projects" class="view-section hidden space-y-8">
+            <div class="flex justify-between items-center"><h1 class="text-4xl font-black">Project Portfolio</h1><button onclick="addProject()" class="bg-indigo-600 px-6 py-2 rounded-xl font-bold">New Project</button></div>
+            <div id="project-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
         </div>
 
-        <!-- TEAM MANAGEMENT -->
-        <div id="v-team" class="view hidden space-y-8">
-            <div class="flex justify-between items-center">
-                <h1 class="text-4xl font-black">Team Control</h1>
-                <button onclick="inviteUser()" class="bg-emerald-600 px-6 py-2 rounded-xl font-bold">Invite Member</button>
-            </div>
-            <div class="glass rounded-3xl overflow-hidden">
-                <table class="w-full text-left">
-                    <thead class="bg-white/5 text-xs uppercase font-bold text-slate-500">
-                        <tr><th class="p-6">Name</th><th>Email</th><th>Role</th><th class="p-6 text-right">Actions</th></tr>
-                    </thead>
-                    <tbody id="user-table"></tbody>
-                </table>
+        <!-- TASKS VIEW (KANBAN) -->
+        <div id="v-tasks" class="view-section hidden space-y-8">
+            <div class="flex justify-between items-center"><h1 class="text-4xl font-black">Workflow Kanban</h1><button onclick="addTask()" class="bg-indigo-600 px-6 py-2 rounded-xl font-bold">Quick Task</button></div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8" id="kanban-board">
+                <div class="space-y-4"><h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest">To Do</h3><div id="col-todo" class="min-h-[500px] bg-white/5 rounded-3xl p-4"></div></div>
+                <div class="space-y-4"><h3 class="text-xs font-bold text-indigo-400 uppercase tracking-widest">In Progress</h3><div id="col-progress" class="min-h-[500px] bg-white/5 rounded-3xl p-4"></div></div>
+                <div class="space-y-4"><h3 class="text-xs font-bold text-emerald-400 uppercase tracking-widest">Completed</h3><div id="col-done" class="min-h-[500px] bg-white/5 rounded-3xl p-4"></div></div>
             </div>
         </div>
 
-        <!-- AUDIT LOG -->
-        <div id="v-audit" class="view hidden space-y-8">
-            <h1 class="text-4xl font-black">Compliance Audit</h1>
-            <div id="full-audit" class="space-y-2"></div>
+        <!-- USER MGMT -->
+        <div id="v-team" class="view-section hidden space-y-8">
+            <h1 class="text-4xl font-black">User Administration</h1>
+            <div class="glass rounded-3xl overflow-hidden"><table class="w-full text-left text-sm"><thead class="bg-white/5 text-slate-500 font-bold uppercase text-[10px]"><tr><th class="p-6">Name</th><th>Email</th><th>Role</th><th class="p-6 text-right">Action</th></tr></thead><tbody id="user-rows"></tbody></table></div>
+        </div>
+
+        <!-- AUDIT LOGS -->
+        <div id="v-audit" class="view-section hidden space-y-8">
+            <h1 class="text-4xl font-black">Security & Audit Logs</h1>
+            <div id="full-audit-log" class="space-y-2"></div>
         </div>
     </main>
 
+    <!-- SUPPORT MODAL -->
+    <div id="support-modal" class="fixed inset-0 z-[300] bg-black/80 backdrop-blur-md flex items-center justify-center hidden p-4">
+        <div class="glass p-8 rounded-[2.5rem] w-full max-w-lg">
+            <h2 class="text-2xl font-bold mb-6">Concierge Support</h2>
+            <input id="sup-sub" placeholder="Subject" class="w-full p-4 bg-white/5 rounded-xl mb-4 border border-white/10 outline-none">
+            <textarea id="sup-msg" placeholder="How can we help your team today?" class="w-full p-4 bg-white/5 rounded-xl mb-6 border border-white/10 outline-none h-40"></textarea>
+            <div class="flex space-x-3"><button onclick="closeSupport()" class="flex-1 py-3 bg-white/5 rounded-xl">Cancel</button><button onclick="sendSupport()" class="flex-1 py-3 bg-indigo-600 rounded-xl font-bold">Open Ticket</button></div>
+        </div>
+    </div>
+
     <script>
+        const API = "/api";
         let token = localStorage.getItem('nexus_token');
         let user = JSON.parse(localStorage.getItem('nexus_user'));
-        const API = "/api";
 
+        // --- AUTH ---
+        function toggleAuth(st) {
+            ['login','signup','forgot'].forEach(s => document.getElementById(`auth-${s}`).classList.add('hidden'));
+            document.getElementById(`auth-${st}`).classList.remove('hidden');
+        }
         async function login() {
             const email = document.getElementById('l-email').value;
             const password = document.getElementById('l-pass').value;
-            const res = await axios.post(`${API}/login`, { email, password });
-            localStorage.setItem('nexus_token', res.data.token);
-            localStorage.setItem('nexus_user', JSON.stringify(res.data.user));
-            location.reload();
+            try {
+                const res = await axios.post(`${API}/auth/login`, { email, password });
+                localStorage.setItem('nexus_token', res.data.token);
+                localStorage.setItem('nexus_user', JSON.stringify(res.data.user));
+                location.reload();
+            } catch(e) { alert("Invalid Credentials"); }
         }
-
+        async function signup() {
+            const data = { name: document.getElementById('s-name').value, email: document.getElementById('s-email').value, password: document.getElementById('s-pass').value };
+            await axios.post(`${API}/auth/register`, data);
+            alert("Account created! Logging you in...");
+            login();
+        }
         function logout() { localStorage.clear(); location.reload(); }
 
+        // --- NAVIGATION ---
         function showView(v) {
-            document.querySelectorAll('.view').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
             document.getElementById(`v-${v}`).classList.remove('hidden');
-            document.querySelectorAll('.v-link').forEach(l => l.classList.remove('nav-active'));
+            document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('nav-active'));
             loadData();
         }
 
+        // --- DATA LOAD ---
         async function loadData() {
-            const [users, projects, tasks, audit] = await Promise.all([
-                axios.get(`${API}/users`, { headers: { Authorization: token }}),
-                axios.get(`${API}/projects`, { headers: { Authorization: token }}),
-                axios.get(`${API}/tasks`, { headers: { Authorization: token }}),
-                axios.get(`${API}/activities`, { headers: { Authorization: token }})
+            const config = { headers: { Authorization: token } };
+            const [stats, tasks, projects, users, audit] = await Promise.all([
+                axios.get(`${API}/admin/stats`, config),
+                axios.get(`${API}/tasks`, config),
+                axios.get(`${API}/projects`, config),
+                axios.get(`${API}/users`, config),
+                axios.get(`${API}/activities`, config)
             ]);
 
             // Stats
-            document.getElementById('st-users').innerText = users.data.length;
-            document.getElementById('st-projects').innerText = projects.data.length;
-            document.getElementById('st-tasks').innerText = tasks.data.length;
+            document.getElementById('st-projects').innerText = stats.data.projects;
+            document.getElementById('st-users').innerText = stats.data.users;
+            document.getElementById('st-tasks').innerText = stats.data.tasks;
 
             // Audit
             const auditHTML = audit.data.map(a => `
-                <div class="p-4 bg-white/5 border border-white/5 rounded-xl flex justify-between text-sm">
+                <div class="flex justify-between items-center p-4 bg-white/5 border border-white/5 rounded-2xl text-xs">
                     <span><b class="text-indigo-400">${a.userName}</b> ${a.action} <b class="text-white">${a.target}</b></span>
                     <span class="text-slate-600">${new Date(a.timestamp).toLocaleTimeString()}</span>
                 </div>
             `).join('');
-            document.getElementById('mini-audit').innerHTML = auditHTML;
-            document.getElementById('full-audit').innerHTML = auditHTML;
+            document.getElementById('audit-feed').innerHTML = auditHTML;
+            document.getElementById('full-audit-log').innerHTML = auditHTML;
 
-            // Users
-            document.getElementById('user-table').innerHTML = users.data.map(u => `
-                <tr class="border-t border-white/5">
-                    <td class="p-6 font-bold">${u.name}</td>
-                    <td>${u.email}</td>
-                    <td><span class="px-2 py-1 rounded bg-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase">${u.role}</span></td>
-                    <td class="p-6 text-right space-x-2">
-                        <button onclick="changeRole(${u.id}, '${u.role === 'admin' ? 'user' : 'admin'}')" class="text-xs text-indigo-400">Flip Role</button>
-                        <button onclick="removeUser(${u.id})" class="text-xs text-red-500">Remove</button>
-                    </td>
-                </tr>
-            `).join('');
-
-            // Projects
-            document.getElementById('project-list').innerHTML = projects.data.map(p => `
-                <div class="glass p-6 rounded-3xl border-l-4" style="border-color: ${p.color}">
-                    <h4 class="font-bold text-lg mb-1">${p.name}</h4>
-                    <p class="text-xs text-slate-500 mb-6">${p.desc}</p>
-                    <button class="w-full py-2 bg-white/5 rounded-xl text-xs font-bold">Open Board</button>
-                </div>
-            `).join('');
-        }
-
-        async function inviteUser() {
-            const name = prompt("Name:");
-            const email = prompt("Email:");
-            await axios.post(`${API}/users/
+            // Kanban
+            ['todo','progress','done'].forEach(st => {
+                const col = document.getElementById(`col-${st}`);
+                col.innerHTML = tasks.data.filter(t => t.status === st).map(t => `
+                    <div class="glass p-5 rounded-2xl mb-3 border border-white/5">
+                        <p class="text-[9px] font-black text-indigo-400 uppercase tracking-widest">${t.priority}</p>
+                        <h4 class="font-bold text-sm mb-1">${t.title}</h4>
+                        <p class="tex
