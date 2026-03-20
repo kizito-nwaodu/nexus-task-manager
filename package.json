@@ -1,21 +1,11 @@
 {
-  "name": "nexus-enterprise-pm",
-  "version": "1.2.0",
-  "description": "High-Performance Multi-Tenant Project Management Platform",
+  "name": "nexus-enterprise-v1",
+  "version": "1.0.0",
+  "description": "Complete Enterprise Project Management SaaS",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
-  "keywords": [
-    "saas",
-    "project-management",
-    "kanban",
-    "enterprise",
-    "nexus"
-  ],
-  "author": "Nexus Core",
-  "license": "MIT",
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
@@ -23,8 +13,5 @@
     "jsonwebtoken": "^9.0.1",
     "path": "^0.12.7",
     "sqlite3": "^5.1.7"
-  },
-  "engines": {
-    "node": ">=14.0.0"
   }
 }
