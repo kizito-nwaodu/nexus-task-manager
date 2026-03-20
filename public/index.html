@@ -2,257 +2,170 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Nexus Enterprise | Workspace</title>
+    <title>Nexus | Enterprise Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        .glass { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
-        body { background: #020617; color: #f8fafc; font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        .sidebar-link.active { background: rgba(99, 102, 241, 0.2); color: #818cf8; border-right: 3px solid #818cf8; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: white; }
+        .glass { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .nav-active { background: #6366f1; color: white; }
     </style>
 </head>
 <body class="flex h-screen">
 
-    <!-- AUTH OVERLAY -->
-    <div id="auth-ui" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950">
-        <div class="glass p-8 rounded-3xl w-full max-w-md shadow-2xl">
-            <div id="login-box">
-                <h2 class="text-3xl font-bold mb-2">Welcome Back</h2>
-                <p class="text-slate-500 mb-6">Enter your Nexus credentials</p>
-                <input id="l-email" type="email" placeholder="Email" class="w-full p-4 bg-white/5 rounded-xl mb-3 border border-white/10">
-                <input id="l-pass" type="password" placeholder="Password" class="w-full p-4 bg-white/5 rounded-xl mb-6 border border-white/10">
-                <button onclick="login()" class="w-full bg-indigo-600 py-4 rounded-xl font-bold hover:bg-indigo-500 transition-all">Sign In</button>
-                <p class="mt-4 text-center text-sm text-slate-500">New? <a href="javascript:toggleAuth()" class="text-indigo-400">Create Account</a></p>
-            </div>
-            <div id="signup-box" class="hidden">
-                <h2 class="text-3xl font-bold mb-2">Join Nexus</h2>
-                <p class="text-slate-500 mb-6">Set up your professional profile</p>
-                <input id="s-name" type="text" placeholder="Full Name" class="w-full p-3 bg-white/5 rounded-xl mb-3 border border-white/10">
-                <input id="s-email" type="email" placeholder="Work Email" class="w-full p-3 bg-white/5 rounded-xl mb-3 border border-white/10">
-                <input id="s-pass" type="password" placeholder="Password" class="w-full p-3 bg-white/5 rounded-xl mb-3 border border-white/10">
-                <input id="s-admin" type="text" placeholder="Admin Code (Optional)" class="w-full p-3 bg-white/5 rounded-xl mb-6 border border-white/10">
-                <button onclick="signup()" class="w-full bg-emerald-600 py-4 rounded-xl font-bold hover:bg-emerald-500 transition-all">Start Free Trial</button>
-                <p class="mt-4 text-center text-sm text-slate-500">Have account? <a href="javascript:toggleAuth()" class="text-indigo-400">Login</a></p>
-            </div>
+    <!-- LOGIN UI -->
+    <div id="auth-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950">
+        <div class="glass p-10 rounded-3xl w-full max-w-md">
+            <h1 class="text-3xl font-bold mb-8">Nexus Portal</h1>
+            <input id="l-email" type="email" placeholder="Email" class="w-full p-4 bg-white/5 rounded-xl border border-white/10 mb-4">
+            <input id="l-pass" type="password" placeholder="Password" class="w-full p-4 bg-white/5 rounded-xl border border-white/10 mb-8">
+            <button onclick="login()" class="w-full py-4 bg-indigo-600 rounded-xl font-bold">Sign In</button>
+            <p class="mt-4 text-center text-xs text-slate-500 italic">Login: admin@nexus.com / password</p>
         </div>
     </div>
 
     <!-- SIDEBAR -->
-    <aside id="sidebar" class="w-64 glass h-full flex-col hidden md:flex">
-        <div class="p-6 flex items-center space-x-3 mb-10">
-            <div class="bg-indigo-600 p-2 rounded-lg"><i data-lucide="layers" class="text-white w-5 h-5"></i></div>
-            <span class="text-xl font-bold tracking-tight">Nexus <span class="text-[10px] bg-indigo-500/20 px-2 rounded text-indigo-400">PRO</span></span>
+    <aside id="sidebar" class="w-64 glass border-r border-white/5 flex flex-col p-6 hidden">
+        <div class="flex items-center space-x-3 mb-12">
+            <div class="bg-indigo-600 p-2 rounded-lg"><i data-lucide="layers" class="w-5 h-5"></i></div>
+            <span class="text-xl font-bold">Nexus</span>
         </div>
-        <nav class="flex-1 px-4 space-y-2">
-            <button onclick="setView('board')" class="sidebar-link w-full flex items-center space-x-3 p-3 rounded-xl transition-all active"><i data-lucide="layout-grid" class="w-4 h-4"></i><span>Board</span></button>
-            <button id="admin-link" onclick="setView('admin')" class="sidebar-link w-full hidden items-center space-x-3 p-3 rounded-xl transition-all"><i data-lucide="bar-chart-3" class="w-4 h-4"></i><span>Analytics</span></button>
-            <button onclick="toggleChat()" class="w-full flex items-center space-x-3 p-3 rounded-xl transition-all"><i data-lucide="message-square" class="w-4 h-4"></i><span>Team Chat</span></button>
+        <nav class="flex-1 space-y-1">
+            <button onclick="showView('dash')" class="v-link w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/5"><i data-lucide="home" class="w-4 h-4"></i><span>Dashboard</span></button>
+            <button onclick="showView('projects')" class="v-link w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/5"><i data-lucide="briefcase" class="w-4 h-4"></i><span>Projects</span></button>
+            <button onclick="showView('team')" class="v-link w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/5"><i data-lucide="users" class="w-4 h-4"></i><span>Team</span></button>
+            <button onclick="showView('audit')" class="v-link w-full flex items-center space-x-3 p-3 rounded-xl hover:bg-white/5"><i data-lucide="shield-check" class="w-4 h-4"></i><span>Audit Log</span></button>
         </nav>
-        <div class="p-6 border-t border-white/5">
-            <div class="flex items-center space-x-3 mb-4">
-                <div id="u-avatar" class="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-xs font-bold">JD</div>
-                <div class="overflow-hidden">
-                    <p id="u-name" class="text-sm font-bold truncate">User</p>
-                    <p id="u-role" class="text-[10px] text-slate-500 uppercase">Member</p>
-                </div>
-            </div>
-            <button onclick="logout()" class="text-xs text-red-400 hover:underline">Sign Out</button>
+        <div class="pt-6 border-t border-white/5">
+            <p id="u-name" class="font-bold text-sm mb-1"></p>
+            <p id="u-role" class="text-[10px] uppercase text-indigo-400 font-bold mb-4"></p>
+            <button onclick="logout()" class="text-xs text-red-400">Logout</button>
         </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
-    <main class="flex-1 overflow-y-auto p-8 hidden" id="main-ui">
-        <!-- Board View -->
-        <div id="view-board" class="view">
-            <div class="flex justify-between items-end mb-10">
-                <div>
-                    <h1 class="text-4xl font-black">Kanban Workspace</h1>
-                    <p class="text-slate-500">Drag and drop tasks to manage workflow</p>
-                </div>
-                <button onclick="addTask()" class="bg-indigo-600 px-6 py-3 rounded-xl font-bold flex items-center space-x-2 shadow-lg shadow-indigo-500/20">
-                    <i data-lucide="plus" class="w-5 h-5"></i><span>Create Task</span>
-                </button>
+    <!-- CONTENT -->
+    <main id="main-content" class="flex-1 overflow-y-auto p-10 hidden">
+        
+        <!-- DASHBOARD -->
+        <div id="v-dash" class="view space-y-8">
+            <h1 class="text-4xl font-black">Global Command</h1>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-sm">Total Projects</p><h2 id="st-projects" class="text-4xl font-bold">0</h2></div>
+                <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-sm">Active Members</p><h2 id="st-users" class="text-4xl font-bold">0</h2></div>
+                <div class="glass p-8 rounded-3xl"><p class="text-slate-500 text-sm">Tasks Tracked</p><h2 id="st-tasks" class="text-4xl font-bold">0</h2></div>
             </div>
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8" id="kanban">
-                <div class="space-y-4">
-                    <h3 class="flex items-center space-x-2 text-slate-500 text-xs font-bold uppercase tracking-widest"><span class="w-2 h-2 bg-slate-600 rounded-full"></span><span>Backlog</span></h3>
-                    <div id="col-todo" class="bg-white/[0.02] border border-white/5 rounded-3xl p-4 min-h-[600px]" ondragover="allowDrop(event)" ondrop="drop(event, 'todo')"></div>
-                </div>
-                <div class="space-y-4">
-                    <h3 class="flex items-center space-x-2 text-indigo-400 text-xs font-bold uppercase tracking-widest"><span class="w-2 h-2 bg-indigo-500 rounded-full"></span><span>Active</span></h3>
-                    <div id="col-progress" class="bg-white/[0.02] border border-white/5 rounded-3xl p-4 min-h-[600px]" ondragover="allowDrop(event)" ondrop="drop(event, 'progress')"></div>
-                </div>
-                <div class="space-y-4">
-                    <h3 class="flex items-center space-x-2 text-emerald-400 text-xs font-bold uppercase tracking-widest"><span class="w-2 h-2 bg-emerald-500 rounded-full"></span><span>Validated</span></h3>
-                    <div id="col-done" class="bg-white/[0.02] border border-white/5 rounded-3xl p-4 min-h-[600px]" ondragover="allowDrop(event)" ondrop="drop(event, 'done')"></div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="glass p-8 rounded-3xl">
+                    <h3 class="font-bold mb-6">Recent Activity</h3>
+                    <div id="mini-audit" class="space-y-4"></div>
                 </div>
             </div>
         </div>
 
-        <!-- Admin View -->
-        <div id="view-admin" class="view hidden">
-            <h1 class="text-4xl font-black mb-10">System Analytics</h1>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                <div class="glass p-8 rounded-3xl">
-                    <p class="text-slate-500 text-sm mb-1">Total Completion</p>
-                    <h2 class="text-4xl font-bold" id="stat-total">0</h2>
-                </div>
-                <div class="glass p-8 rounded-3xl">
-                    <p class="text-slate-500 text-sm mb-1">Active Velocity</p>
-                    <h2 class="text-4xl font-bold text-indigo-400" id="stat-active">0</h2>
-                </div>
-                <button onclick="exportCSV()" class="glass p-8 rounded-3xl text-left border-dashed border-indigo-500/50 hover:bg-indigo-500/5 transition-all">
-                    <p class="text-indigo-400 text-sm mb-1">Generate Report</p>
-                    <h2 class="text-xl font-bold">Download CSV →</h2>
-                </button>
+        <!-- PROJECTS -->
+        <div id="v-projects" class="view hidden space-y-8">
+            <div class="flex justify-between items-center">
+                <h1 class="text-4xl font-black">Projects</h1>
+                <button onclick="createProject()" class="bg-indigo-600 px-6 py-2 rounded-xl font-bold">Create Project</button>
             </div>
+            <div id="project-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+
+        <!-- TEAM MANAGEMENT -->
+        <div id="v-team" class="view hidden space-y-8">
+            <div class="flex justify-between items-center">
+                <h1 class="text-4xl font-black">Team Control</h1>
+                <button onclick="inviteUser()" class="bg-emerald-600 px-6 py-2 rounded-xl font-bold">Invite Member</button>
+            </div>
+            <div class="glass rounded-3xl overflow-hidden">
+                <table class="w-full text-left">
+                    <thead class="bg-white/5 text-xs uppercase font-bold text-slate-500">
+                        <tr><th class="p-6">Name</th><th>Email</th><th>Role</th><th class="p-6 text-right">Actions</th></tr>
+                    </thead>
+                    <tbody id="user-table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- AUDIT LOG -->
+        <div id="v-audit" class="view hidden space-y-8">
+            <h1 class="text-4xl font-black">Compliance Audit</h1>
+            <div id="full-audit" class="space-y-2"></div>
         </div>
     </main>
 
-    <!-- CHAT DRAWER -->
-    <div id="chat-drawer" class="fixed right-0 top-0 bottom-0 w-80 glass border-l border-white/10 translate-x-full transition-transform z-50 flex flex-col">
-        <div class="p-6 border-b border-white/5 flex justify-between items-center">
-            <h3 class="font-bold">Team Chat</h3>
-            <button onclick="toggleChat()"><i data-lucide="x" class="w-4 h-4"></i></button>
-        </div>
-        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
-        <div class="p-4 border-t border-white/5">
-            <input id="chat-input" onkeydown="if(event.key==='Enter') sendChat()" type="text" placeholder="Type a message..." class="w-full p-3 bg-white/5 rounded-xl text-sm border border-white/10">
-        </div>
-    </div>
-
     <script>
-        const API = "/api";
-        let user = JSON.parse(localStorage.getItem('nexus_user'));
         let token = localStorage.getItem('nexus_token');
-
-        // NAVIGATION
-        function setView(view) {
-            document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-            document.getElementById(`view-${view}`).classList.remove('hidden');
-            document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
-            if(view === 'admin') loadStats();
-            lucide.createIcons();
-        }
-
-        function toggleAuth() {
-            document.getElementById('login-box').classList.toggle('hidden');
-            document.getElementById('signup-box').classList.toggle('hidden');
-        }
-
-        // AUTH ACTIONS
-        async function signup() {
-            const data = {
-                name: document.getElementById('s-name').value,
-                email: document.getElementById('s-email').value,
-                password: document.getElementById('s-pass').value,
-                adminCode: document.getElementById('s-admin').value
-            };
-            try {
-                await axios.post(`${API}/auth/signup`, data);
-                alert("Account created! You can now login.");
-                toggleAuth();
-            } catch(e) { alert(e.response.data.error); }
-        }
+        let user = JSON.parse(localStorage.getItem('nexus_user'));
+        const API = "/api";
 
         async function login() {
             const email = document.getElementById('l-email').value;
             const password = document.getElementById('l-pass').value;
-            try {
-                const res = await axios.post(`${API}/auth/login`, { email, password });
-                localStorage.setItem('nexus_token', res.data.token);
-                localStorage.setItem('nexus_user', JSON.stringify(res.data.user));
-                location.reload();
-            } catch(e) { alert("Login failed"); }
+            const res = await axios.post(`${API}/login`, { email, password });
+            localStorage.setItem('nexus_token', res.data.token);
+            localStorage.setItem('nexus_user', JSON.stringify(res.data.user));
+            location.reload();
         }
 
         function logout() { localStorage.clear(); location.reload(); }
 
-        // TASK ACTIONS
-        async function loadTasks() {
-            const res = await axios.get(`${API}/tasks`, { headers: { Authorization: token }});
-            const tasks = res.data;
-            ['todo', 'progress', 'done'].forEach(status => {
-                const col = document.getElementById(`col-${status}`);
-                col.innerHTML = '';
-                tasks.filter(t => t.status === status).forEach(task => {
-                    col.innerHTML += `
-                        <div draggable="true" ondragstart="drag(event, ${task.id})" class="glass p-5 rounded-3xl mb-4 border border-white/5 hover:border-indigo-500/50 cursor-grab active:cursor-grabbing">
-                            <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-tighter">${task.priority}</span>
-                            <h4 class="font-bold text-sm mt-1 mb-2">${task.title}</h4>
-                            <p class="text-xs text-slate-500 mb-4">${task.desc}</p>
-                            <div class="flex justify-between items-center text-[10px] text-slate-600">
-                                <span>#${task.id}</span>
-                                <span>${new Date(task.createdAt).toLocaleDateString()}</span>
-                            </div>
-                        </div>
-                    `;
-                });
-            });
-            lucide.createIcons();
+        function showView(v) {
+            document.querySelectorAll('.view').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`v-${v}`).classList.remove('hidden');
+            document.querySelectorAll('.v-link').forEach(l => l.classList.remove('nav-active'));
+            loadData();
         }
 
-        function drag(e, id) { e.dataTransfer.setData("text", id); }
-        function allowDrop(e) { e.preventDefault(); }
-        async function drop(e, status) {
-            const id = e.dataTransfer.getData("text");
-            await axios.put(`${API}/tasks/${id}`, { status }, { headers: { Authorization: token }});
-            loadTasks();
-        }
+        async function loadData() {
+            const [users, projects, tasks, audit] = await Promise.all([
+                axios.get(`${API}/users`, { headers: { Authorization: token }}),
+                axios.get(`${API}/projects`, { headers: { Authorization: token }}),
+                axios.get(`${API}/tasks`, { headers: { Authorization: token }}),
+                axios.get(`${API}/activities`, { headers: { Authorization: token }})
+            ]);
 
-        async function addTask() {
-            const title = prompt("Task Name:");
-            if(!title) return;
-            await axios.post(`${API}/tasks`, { title, desc: 'Enterprise requirements...', status: 'todo', priority: 'high' }, { headers: { Authorization: token }});
-            loadTasks();
-        }
+            // Stats
+            document.getElementById('st-users').innerText = users.data.length;
+            document.getElementById('st-projects').innerText = projects.data.length;
+            document.getElementById('st-tasks').innerText = tasks.data.length;
 
-        // ADMIN / ANALYTICS
-        async function loadStats() {
-            const res = await axios.get(`${API}/admin/stats`, { headers: { Authorization: token }});
-            res.data.forEach(stat => {
-                if(stat.status === 'done') document.getElementById('stat-total').innerText = stat.count;
-                if(stat.status === 'progress') document.getElementById('stat-active').innerText = stat.count;
-            });
-        }
-
-        function exportCSV() {
-            alert("Generating Secure CSV Report...");
-            // Real CSV logic here
-        }
-
-        // CHAT
-        function toggleChat() { document.getElementById('chat-drawer').classList.toggle('translate-x-full'); loadMessages(); }
-        async function loadMessages() {
-            const res = await axios.get(`${API}/messages`, { headers: { Authorization: token }});
-            document.getElementById('chat-messages').innerHTML = res.data.map(m => `
-                <div class="bg-white/5 p-3 rounded-2xl">
-                    <p class="text-[10px] font-bold text-indigo-400">${m.senderName}</p>
-                    <p class="text-xs">${m.text}</p>
+            // Audit
+            const auditHTML = audit.data.map(a => `
+                <div class="p-4 bg-white/5 border border-white/5 rounded-xl flex justify-between text-sm">
+                    <span><b class="text-indigo-400">${a.userName}</b> ${a.action} <b class="text-white">${a.target}</b></span>
+                    <span class="text-slate-600">${new Date(a.timestamp).toLocaleTimeString()}</span>
                 </div>
-            `).reverse().join('');
-        }
-        async function sendChat() {
-            const input = document.getElementById('chat-input');
-            await axios.post(`${API}/messages`, { text: input.value }, { headers: { Authorization: token }});
-            input.value = '';
-            loadMessages();
+            `).join('');
+            document.getElementById('mini-audit').innerHTML = auditHTML;
+            document.getElementById('full-audit').innerHTML = auditHTML;
+
+            // Users
+            document.getElementById('user-table').innerHTML = users.data.map(u => `
+                <tr class="border-t border-white/5">
+                    <td class="p-6 font-bold">${u.name}</td>
+                    <td>${u.email}</td>
+                    <td><span class="px-2 py-1 rounded bg-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase">${u.role}</span></td>
+                    <td class="p-6 text-right space-x-2">
+                        <button onclick="changeRole(${u.id}, '${u.role === 'admin' ? 'user' : 'admin'}')" class="text-xs text-indigo-400">Flip Role</button>
+                        <button onclick="removeUser(${u.id})" class="text-xs text-red-500">Remove</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Projects
+            document.getElementById('project-list').innerHTML = projects.data.map(p => `
+                <div class="glass p-6 rounded-3xl border-l-4" style="border-color: ${p.color}">
+                    <h4 class="font-bold text-lg mb-1">${p.name}</h4>
+                    <p class="text-xs text-slate-500 mb-6">${p.desc}</p>
+                    <button class="w-full py-2 bg-white/5 rounded-xl text-xs font-bold">Open Board</button>
+                </div>
+            `).join('');
         }
 
-        // INIT
-        if (token) {
-            document.getElementById('auth-ui').classList.add('hidden');
-            document.getElementById('main-ui').classList.remove('hidden');
-            document.getElementById('sidebar').classList.remove('hidden');
-            document.getElementById('u-name').innerText = user.name;
-            document.getElementById('u-role').innerText = user.role;
-            document.getElementById('u-avatar').innerText = user.name.charAt(0);
-            if(user.role === 'admin') document.getElementById('admin-link').classList.remove('hidden');
-            loadTasks();
-            setInterval(loadMessages, 5000);
-        }
-        lucide.createIcons();
-    </script>
-</body>
-</html>
+        async function inviteUser() {
+            const name = prompt("Name:");
+            const email = prompt("Email:");
+            await axios.post(`${API}/users/
