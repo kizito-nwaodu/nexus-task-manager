@@ -1,7 +1,6 @@
 {
-  "name": "nexus-enterprise-system",
-  "version": "1.5.0",
-  "description": "Enterprise Project Management with Role-Based Access",
+  "name": "nexus-pro-enterprise",
+  "version": "1.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -13,8 +12,5 @@
     "jsonwebtoken": "^9.0.1",
     "path": "^0.12.7",
     "sqlite3": "^5.1.7"
-  },
-  "engines": {
-    "node": ">=14.0.0"
   }
 }
