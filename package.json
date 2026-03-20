@@ -1,6 +1,7 @@
 {
-  "name": "nexus-pro",
+  "name": "nexus-pm-saas",
   "version": "1.0.0",
+  "description": "Modern Project Management SaaS",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
