@@ -1,7 +1,7 @@
 {
-  "name": "nexus-enterprise-v1",
-  "version": "1.0.0",
-  "description": "Complete Enterprise Project Management SaaS",
+  "name": "nexus-enterprise-system",
+  "version": "1.5.0",
+  "description": "Enterprise Project Management with Role-Based Access",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -13,5 +13,8 @@
     "jsonwebtoken": "^9.0.1",
     "path": "^0.12.7",
     "sqlite3": "^5.1.7"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   }
 }
